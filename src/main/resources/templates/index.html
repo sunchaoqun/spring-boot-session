@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<title>Spring Boot Session Example</title>
+<script type="text/javascript" src="https://260a02c9b6da.us-east-1.captcha-sdk.awswaf.com/260a02c9b6da/_/jsapi.js"></script>
+</head>
+<body>
+	<div>
+		<form th:action="@{/persistMessage}" method="post" onsubmit="return submitForm();">
+			<textarea name="msg" cols="40" rows="2"></textarea>
+			<br> <input type="submit" value="Save Message" /> <input type="button" value="ReCaptcha" onclick="reCaptcha()"/>
+		</form>
+	</div>
+	<div>
+		<h2>Messages</h2>
+		<ul th:each="message : ${sessionMessages}">
+			<li th:text="${message}">msg</li>
+		</ul>
+	</div>
+	<div>
+		<form th:action="@{/destroy}" method="post">
+			<input type="submit" value="Destroy Session" />
+		</form>
+	</div>
+	<div id="my-captcha-container">
+	    <!-- The contents of this box will be replaced by the captcha widget -->
+	</div>
+</body>
+</html>
+
+<script type="text/javascript">
+
+	function submitForm(){
+		var session_waf_token = "[[${wafToken}]]";
+		var result = false;
+		const checkIt = async () => {
+			 result = await AwsWafIntegration.getToken().then((tk) => {
+				if(session_waf_token == tk) {
+					return true;
+				}else{
+					alert("Please handle the puzzle first!");
+					return false;
+				}
+			});
+		};
+		
+		checkIt();
+		
+		return result;
+	}
+	
+	function reCaptcha(){
+		showMyCaptcha();
+	}
+
+    function showMyCaptcha() {
+        var container = document.querySelector("#my-captcha-container");
+        AwsWafCaptcha.renderCaptcha(container, {
+            apiKey: "YdoBBckUIz47nRF7kMJHRwnC/jz+sEFcI3LiXFFtREUDjwQfeCy16shuXYIto8RxDgVA91tFl4X0gA8zZghueD5anx5FB7/O6nGZUKEtw7x0kxoEtiwkmr7MzOY7Xowg9dybbON2K4E6bzktCFE92wzMW7dOzVXQtp7CqYaPCvFyxeA/vl5xUrHEyVrDgimqj1opwDqRFqCx3T0bERQew0HjWwWNkYXugxC8YgO2isAAF7PksLQNBYtLq/EQZRujnt5fAQFv19Y3SIr74pxf4CXXHZn48RPG5LZGyp8p42Sh7crU0Nlf/o7rq3FqOO5M7eKwa0N3+KGgvXv47yq2jL2rkYypmo/Jiw7EOJKIbBHhoNKxnEW2Vfq2888gPqGIlJTQa6JyASXn+zpvQvjy9WKJA83ddRPsHFuTgZodRRZmbBRsI2YwW4DmmmdV+A0koma0xsgE61xfEeGwY8S981DH1wRhr69LOaBjfg6sFjZ0gOup8KZfY4wZC2i70ZeioqT43Lrf+mCmEASticlMxThsg4iWtLDhbgOuRLQxdI6wNgAJyuxrk32EefXubnPqExP3pAbu6frVw3EFsFm41HECV5FA1HFYrZp4+Y6Px7i2/59P9yQLJKu7TCnsf/GeV95AO7S6mfGqxr2aKBG7JyFVQZvUzYRekW7Po8x8BZc=_0_1",
+            onSuccess: captchaExampleSuccessFunction,
+            onError: captchaExampleErrorFunction,
+            dynamicWidth: true, 
+            skipTitle: true
+        });
+    }
+    
+    function captchaExampleSuccessFunction(wafToken) {
+        // Captcha completed. wafToken contains a valid WAF token. Store it for
+        // use later or call AwsWafIntegration.fetch() to use it easily.
+        // It will expire after a time, so calling AwsWafIntegration.getToken()
+        // again is advised if the token is needed later on, outside of using the
+        // fetch wrapper.
+        
+        // Use WAF token to access protected resources
+        AwsWafIntegration.fetch("/captcha", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: "{\"wafToken\": \"" + wafToken + "\"}"
+        });
+    }
+    
+    function captchaExampleErrorFunction(error) {
+		alert("try again");
+    }
+
+</script>
